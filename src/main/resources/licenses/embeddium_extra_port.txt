@@ -1,0 +1,40 @@
+Ribbon — Embeddium Extra port attributions
+==========================================
+
+The package `me.flashyreese.mods.sodiumextra` inside this repository is a port
+(fork) of **Embeddium Extra** by dima_dencep / FlashyReese.
+
+Upstream project : https://github.com/dima-dencep/rubidium-extra
+Upstream branch  : 1.20.1/stable
+Upstream version : 0.5.4.4+mc1.20.1-build.131
+Upstream license : GNU Lesser General Public License v3.0 only (LGPL-3.0-only)
+Upstream commit  : 697fc1fd29ecbd156bc7725a3f54b1b6fc28b3c6
+
+What was changed during the port
+--------------------------------
+1. All Minecraft API references were translated from Yarn mappings to the
+   Mojang "official" mappings used by this ForgeGradle project
+   (Text -> Component, Identifier -> ResourceLocation,
+    MinecraftClient -> Minecraft, WorldRenderer -> LevelRenderer,
+    ParticleManager -> ParticleEngine, DrawContext -> GuiGraphics, ...).
+2. `mixin.compat.MixinSodiumOptionsGUI` was DELETED. The five option pages are
+   now registered through Embeddium's public extension API:
+   `org.embeddedt.embeddium.api.OptionGUIConstructionEvent.BUS.addListener(...)`
+   (see `client/SodiumExtraOptions.java`).
+3. `mixin.sodium.scrollable_page.MixinSodiumOptionsGUI` and the
+   `client/gui/scrollable_page/*` frame classes were DELETED. Embeddium 0.5.8
+   ships its own scrollable option frame
+   (`org.embeddedt.embeddium.gui.frame.ScrollableFrame`), so the custom one is
+   no longer required.
+4. `SodiumExtraClientMod.mixinConfig()` (CaffeineConfig) was replaced by a small
+   self-contained properties-file reader, because Embeddium 0.5.8 no longer
+   bundles `net.caffeinemc.caffeineconfig`. The behaviour is the same: a
+   `config/sodium-extra-mixins.properties` file that can disable individual
+   behaviour mixins. Option visibility checks now call
+   `SodiumExtraClientMod.mixinEnabled("<name>")`.
+5. `ColorRGBA`, the custom vertex formats and the fast-weather / draw-helper
+   optimisations are NOT part of this port yet.
+
+Files that are a direct translation of upstream code remain LGPL-3.0-only.
+Anything newly written for Ribbon is also distributed under LGPL-3.0-only so
+that the combined work stays consistent with the upstream license.

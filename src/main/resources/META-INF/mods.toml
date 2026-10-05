@@ -1,0 +1,49 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="LGPL-3.0-only"
+
+[[mods]]
+modId="ribbon"
+version="0.10.1"
+displayName="Ribbon"
+logoFile="ribbon.png"
+description='''
+Ribbon is a fork of Embeddium, a fork of Sodium with patches for Forge.
+'''
+credits="foolish love"
+authors="foolish love"
+
+[[mods]]
+modId="rubidium"
+version="0.7.1"
+displayName="Rubidium (Ribbon)"
+description='''
+Stub, to allow mods detecting Rubidium to function as expected.
+'''
+
+[[mods]]
+modId="embeddium"
+version="0.5.8"
+displayName="Embeddium (Ribbon)"
+description='''
+Stub, to allow mods detecting Embeddium to function as expected.
+'''
+
+[[dependencies.ribbon]]
+modId="oculus"
+mandatory=false
+versionRange="(1.6.15,)"
+ordering="BEFORE"
+side="CLIENT"
+
+[[dependencies.ribbon]]
+modId="textrues_embeddium_options"
+mandatory=false
+versionRange="[0.0.0-NOT-COMPATIBLE]"
+ordering="BEFORE"
+side="CLIENT"
+[[mixins]]
+config="embeddium.mixins.json"
+
+[[mixins]]
+config="sodium-extra.mixins.json"
