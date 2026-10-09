@@ -8,7 +8,6 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.RenderBuffers;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
-import net.minecraft.core.BlockPos;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -38,30 +37,9 @@ public abstract class WorldRendererMixin implements WorldRendererExtended {
         this.renderer.setWorld(world);
     }
 
-    // ⚠️ 加了 require = 0，Oculus 修改方法后找不到目标也不会崩溃
-    @Inject(method = "setBlocksDirty", at = @At("HEAD"), require = 0)
-    public void ribbon$setBlocksDirty(int minX, int minY, int minZ, int maxX, int maxY, int maxZ, CallbackInfo ci) {
-        if (this.renderer == null) return;
-        this.renderer.scheduleRebuildForBlockArea(minX, minY, minZ, maxX, maxY, maxZ, false);
-    }
-
-    @Inject(method = "setSectionDirtyWithNeighbors", at = @At("HEAD"), require = 0)
-    public void ribbon$setSectionDirtyWithNeighbors(int x, int y, int z, CallbackInfo ci) {
-        if (this.renderer == null) return;
-        this.renderer.scheduleRebuildForChunks(x - 1, y - 1, z - 1, x + 1, y + 1, z + 1, false);
-    }
-
-    @Inject(method = "setBlockDirty", at = @At("HEAD"), require = 0)
-    private void ribbon$setBlockDirty(BlockPos pos, boolean important, CallbackInfo ci) {
-        if (this.renderer == null) return;
-        this.renderer.scheduleRebuildForBlockArea(
-                pos.getX() - 1, pos.getY() - 1, pos.getZ() - 1,
-                pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1, important);
-    }
-
-    @Inject(method = "setSectionDirty", at = @At("HEAD"), require = 0)
-    private void ribbon$setSectionDirty(int x, int y, int z, CallbackInfo ci) {
-        if (this.renderer == null) return;
-        this.renderer.scheduleRebuildForChunk(x, y, z, false);
-    }
+    // ==========================================
+    // ⚠️ 彻底删除了 setBlocksDirty 等 4 个注入！
+    // Embeddium 自己会处理方块更新重建。
+    // 我们加的那些，就是导致你移动时阴影抽搐、变亮片、被剔除的罪魁祸首。
+    // ==========================================
 }

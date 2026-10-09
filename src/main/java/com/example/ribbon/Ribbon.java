@@ -37,6 +37,13 @@ public class Ribbon {
 
             // 初始化从 Embeddium Extra 移植过来的 animation/particle/detail/render/extra 5 个页面
             me.flashyreese.mods.sodiumextra.client.SodiumExtraOptions.init();
+
+            // ==========================================
+            // 新增：初始化 Distant Horizons 兼容层
+            // 作用：如果玩家装了 DH，就动态调整它的 LOD 渲染范围；
+            //      如果没装，或者 DH 版本对不上，会静默跳过，不影响游戏。
+            // ==========================================
+            DistantHorizonsCompat.init();
         }
     }
 

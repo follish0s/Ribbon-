@@ -42,6 +42,19 @@ public class Config
     public static final ForgeConfigSpec.BooleanValue RAINBOW_BLOCK_OUTLINE;
     public static final ForgeConfigSpec.EnumValue<OutlineColorMode> OUTLINE_COLOR_MODE;
 
+    // GUI 配置
+    public static final ForgeConfigSpec.BooleanValue RAINBOW_CROSSHAIR;
+    public static final ForgeConfigSpec.BooleanValue HOTBAR_HIGHLIGHT;
+    public static final ForgeConfigSpec.BooleanValue DAMAGE_NUMBERS;
+    public static final ForgeConfigSpec.DoubleValue DAMAGE_NUMBER_SCALE;
+
+    // 语言切换
+    public static final ForgeConfigSpec.EnumValue<Language> LANGUAGE;
+
+    // 生物群系标题
+    public static final ForgeConfigSpec.BooleanValue BIOME_TITLE;
+    public static final ForgeConfigSpec.IntValue BIOME_TITLE_DURATION;
+
     public static final ForgeConfigSpec SPEC;
 
     static {
@@ -64,6 +77,33 @@ public class Config
         OUTLINE_COLOR_MODE = BUILDER
                 .comment("The color mode of the block outline")
                 .defineEnum("outlineColorMode", OutlineColorMode.RAINBOW);
+        BUILDER.pop();
+
+        BUILDER.push("gui_settings");
+        RAINBOW_CROSSHAIR = BUILDER
+                .comment("Enable rainbow crosshair")
+                .define("rainbowCrosshair", false);
+        HOTBAR_HIGHLIGHT = BUILDER
+                .comment("Highlight the selected hotbar slot with a rainbow border")
+                .define("hotbarHighlight", false);
+        DAMAGE_NUMBERS = BUILDER
+                .comment("Show floating damage numbers when hitting entities")
+                .define("damageNumbers", false);
+        DAMAGE_NUMBER_SCALE = BUILDER
+                .comment("Damage number size multiplier")
+                .defineInRange("damageNumberScale", 2.0, 0.5, 5.0);
+        BIOME_TITLE = BUILDER
+                .comment("Show an RPG-style title when entering a new biome")
+                .define("biomeTitle", true);
+        BIOME_TITLE_DURATION = BUILDER
+                .comment("How long the biome title stays on screen (milliseconds)")
+                .defineInRange("biomeTitleDuration", 3000, 1000, 10000);
+        BUILDER.pop();
+
+        BUILDER.push("misc");
+        LANGUAGE = BUILDER
+                .comment("Language used by the Ribbon GUI. Restart the video settings screen after switching.")
+                .defineEnum("language", Language.ENGLISH);
         BUILDER.pop();
 
         SPEC = BUILDER.build();
@@ -98,5 +138,10 @@ public class Config
         RAINBOW,
         BLUE_PURPLE,
         GREEN_PURPLE
+    }
+
+    public enum Language {
+        ENGLISH,
+        CHINESE
     }
 }

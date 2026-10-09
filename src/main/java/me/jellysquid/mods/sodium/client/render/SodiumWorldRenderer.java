@@ -27,7 +27,7 @@ import java.util.SortedSet;
 
 public class SodiumWorldRenderer {
 
-    private static SodiumWorldRenderer instance;
+    private static volatile SodiumWorldRenderer instance;
 
     private final Minecraft client;
     private ClientLevel world;
@@ -46,10 +46,6 @@ public class SodiumWorldRenderer {
         return instance;
     }
 
-    /**
-     * 只保存世界引用，不要在这里创建 RenderSectionManager。
-     * 因为它会尝试访问 OpenGL 上下文，而 setLevel 阶段 GL 上下文可能未就绪。
-     */
     public void setWorld(ClientLevel world) {
         if (this.renderSectionManager != null) {
             this.renderSectionManager.destroy();
@@ -58,10 +54,6 @@ public class SodiumWorldRenderer {
         this.world = world;
     }
 
-    /**
-     * 延迟创建：只在 setupTerrain 被渲染线程调用时才会执行。
-     * 此时 OpenGL 上下文一定有效。
-     */
     private void ensureManager(ClientLevel level) {
         if (this.renderSectionManager != null) return;
         try {
@@ -74,13 +66,8 @@ public class SodiumWorldRenderer {
         }
     }
 
-    public ClientLevel getWorld() {
-        return this.world;
-    }
-
-    public RenderSectionManager getRenderSectionManager() {
-        return this.renderSectionManager;
-    }
+    public ClientLevel getWorld() { return this.world; }
+    public RenderSectionManager getRenderSectionManager() { return this.renderSectionManager; }
 
     public void updateChunks(boolean updateImmediately) {
         if (this.renderSectionManager != null) {
@@ -96,9 +83,7 @@ public class SodiumWorldRenderer {
     }
 
     public void onChunkAdded(int x, int z) {
-        if (this.renderSectionManager == null) {
-            return;
-        }
+        if (this.renderSectionManager == null) return;
         this.renderSectionManager.onChunkAdded(x, z);
     }
 
@@ -108,27 +93,20 @@ public class SodiumWorldRenderer {
         }
     }
 
-    /**
-     * 关键修复：把创建 RenderSectionManager 的时机推迟到这里。
-     * 这个方法由渲染线程在每帧调用，此时 GL 上下文一定有效。
-     *
-     * 防御性检查：Oculus 在渲染阴影时可能传入无效的 viewport / camera。
-     */
-    public void setupTerrain(Camera camera, Viewport viewport, int frame, boolean spectator, boolean updateChunksImmediately) {
-        // 延迟创建
+    public void setupTerrain(Camera camera, Viewport viewport, int frame,
+                             boolean spectator, boolean updateChunksImmediately) {
         if (this.world != null && this.renderSectionManager == null) {
             ensureManager(this.world);
         }
-
-        if (this.renderSectionManager != null) {
-            // ⚠️ 防御性检查：Oculus 阴影渲染时可能传入无效的视锥体数据
-            if (viewport == null || camera == null) {
-                return;
-            }
-
-            this.renderSectionManager.needsUpdate();
-            this.renderSectionManager.update(camera, viewport, frame, spectator);
+        if (this.renderSectionManager == null) {
+            return;
         }
+
+        // ★ Ribbon: 完全按原版 Embeddium 的逻辑
+        //   Oculus 通过自己的 MixinRenderSectionManager 隔离两份列表，
+        //   这里任何 shadow 判断都会破坏它的状态机。
+        this.renderSectionManager.needsUpdate();
+        this.renderSectionManager.update(camera, viewport, frame, spectator);
     }
 
     public void scheduleTerrainUpdate() {
@@ -138,16 +116,18 @@ public class SodiumWorldRenderer {
     }
 
     public void scheduleRebuildForBlockArea(int minX, int minY, int minZ, int maxX, int maxY, int maxZ, boolean important) {
-        this.scheduleRebuildForChunks(minX >> 4, minY >> 4, minZ >> 4,
-                maxX >> 4, maxY >> 4, maxZ >> 4, important);
+        this.scheduleRebuildForChunks(minX >> 4, minY >> 4, minZ >> 4, maxX >> 4, maxY >> 4, maxZ >> 4, important);
     }
 
     public void scheduleRebuildForChunks(int minX, int minY, int minZ, int maxX, int maxY, int maxZ, boolean important) {
         if (this.renderSectionManager == null) return;
-        for (int x = minX; x <= maxX; x++)
-            for (int y = minY; y <= maxY; y++)
-                for (int z = minZ; z <= maxZ; z++)
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                for (int z = minZ; z <= maxZ; z++) {
                     this.renderSectionManager.scheduleRebuild(x, y, z, important);
+                }
+            }
+        }
     }
 
     public void scheduleRebuildForChunk(int x, int y, int z, boolean important) {
@@ -157,9 +137,7 @@ public class SodiumWorldRenderer {
     }
 
     public boolean isSectionReady(int x, int y, int z) {
-        if (this.renderSectionManager != null) {
-            return this.renderSectionManager.isSectionBuilt(x, y, z);
-        }
+        if (this.renderSectionManager != null) return this.renderSectionManager.isSectionBuilt(x, y, z);
         return true;
     }
 
@@ -170,9 +148,7 @@ public class SodiumWorldRenderer {
     }
 
     public List<String> getDebugStrings() {
-        if (this.renderSectionManager != null) {
-            return new ArrayList<>(this.renderSectionManager.getDebugStrings());
-        }
+        if (this.renderSectionManager != null) return new ArrayList<>(this.renderSectionManager.getDebugStrings());
         return new ArrayList<>();
     }
 
@@ -186,9 +162,7 @@ public class SodiumWorldRenderer {
     }
 
     public int getVisibleChunkCount() {
-        if (this.renderSectionManager != null) {
-            return this.renderSectionManager.getVisibleChunkCount();
-        }
+        if (this.renderSectionManager != null) return this.renderSectionManager.getVisibleChunkCount();
         return 0;
     }
 
@@ -197,26 +171,16 @@ public class SodiumWorldRenderer {
         return !this.renderSectionManager.needsUpdate();
     }
 
-    public boolean didBlockEntityRequestOutline() {
-        return false;
-    }
+    public boolean didBlockEntityRequestOutline() { return false; }
 
     public void drawChunkLayer(RenderType renderLayer, PoseStack matrixStack, double x, double y, double z) {
         if (this.renderSectionManager == null) return;
-
         ChunkRenderMatrices matrices = ChunkRenderMatrices.from(matrixStack);
-
         TerrainRenderPass pass;
-        if (renderLayer == RenderType.solid()) {
-            pass = DefaultTerrainRenderPasses.SOLID;
-        } else if (renderLayer == RenderType.cutout()) {
-            pass = DefaultTerrainRenderPasses.CUTOUT;
-        } else if (renderLayer == RenderType.translucent()) {
-            pass = DefaultTerrainRenderPasses.TRANSLUCENT;
-        } else {
-            return;
-        }
-
+        if (renderLayer == RenderType.solid()) pass = DefaultTerrainRenderPasses.SOLID;
+        else if (renderLayer == RenderType.cutout()) pass = DefaultTerrainRenderPasses.CUTOUT;
+        else if (renderLayer == RenderType.translucent()) pass = DefaultTerrainRenderPasses.TRANSLUCENT;
+        else return;
         this.renderSectionManager.renderLayer(matrices, pass, x, y, z);
     }
 
@@ -226,59 +190,41 @@ public class SodiumWorldRenderer {
         }
     }
 
-    public void renderBlockEntities(PoseStack matrices,
-                                    RenderBuffers bufferBuilders,
+    public void renderBlockEntities(PoseStack matrices, RenderBuffers bufferBuilders,
                                     Long2ObjectMap<SortedSet<BlockDestructionProgress>> blockBreakingProgressions,
-                                    Camera camera,
-                                    float tickDelta) {
+                                    Camera camera, float tickDelta) {
     }
 
     @SuppressWarnings("unused")
-    private static void renderBlockEntity(
-            PoseStack matrices,
-            RenderBuffers bufferBuilders,
-            Long2ObjectMap<SortedSet<BlockDestructionProgress>> blockBreakingProgressions,
-            float tickDelta,
-            MultiBufferSource.BufferSource immediate,
-            double x, double y, double z,
-            BlockEntityRenderDispatcher dispatcher,
-            BlockEntity blockEntity) {
+    private static void renderBlockEntity(PoseStack matrices, RenderBuffers bufferBuilders,
+                                          Long2ObjectMap<SortedSet<BlockDestructionProgress>> blockBreakingProgressions,
+                                          float tickDelta, MultiBufferSource.BufferSource immediate,
+                                          double x, double y, double z, BlockEntityRenderDispatcher dispatcher,
+                                          BlockEntity blockEntity) {
     }
 
     @SuppressWarnings("unused")
-    public void renderBlockEntities(
-            PoseStack matrices,
-            RenderBuffers bufferBuilders,
-            Long2ObjectMap<SortedSet<BlockDestructionProgress>> blockBreakingProgressions,
-            float tickDelta,
-            MultiBufferSource.BufferSource immediate,
-            double x, double y, double z,
-            BlockEntityRenderDispatcher dispatcher) {
+    public void renderBlockEntities(PoseStack matrices, RenderBuffers bufferBuilders,
+                                    Long2ObjectMap<SortedSet<BlockDestructionProgress>> blockBreakingProgressions,
+                                    float tickDelta, MultiBufferSource.BufferSource immediate,
+                                    double x, double y, double z, BlockEntityRenderDispatcher dispatcher) {
         List<BlockEntity> empty = Collections.emptyList();
         for (BlockEntity entity : empty) {
-            renderBlockEntity(matrices, bufferBuilders, blockBreakingProgressions,
-                    tickDelta, immediate, x, y, z, dispatcher, entity);
+            renderBlockEntity(matrices, bufferBuilders, blockBreakingProgressions, tickDelta, immediate, x, y, z, dispatcher, entity);
         }
     }
 
     @SuppressWarnings("unused")
-    public void renderGlobalBlockEntities(
-            PoseStack matrices,
-            RenderBuffers bufferBuilders,
-            Long2ObjectMap<SortedSet<BlockDestructionProgress>> blockBreakingProgressions,
-            float tickDelta,
-            MultiBufferSource.BufferSource immediate,
-            double x, double y, double z,
-            BlockEntityRenderDispatcher dispatcher) {
+    public void renderGlobalBlockEntities(PoseStack matrices, RenderBuffers bufferBuilders,
+                                          Long2ObjectMap<SortedSet<BlockDestructionProgress>> blockBreakingProgressions,
+                                          float tickDelta, MultiBufferSource.BufferSource immediate,
+                                          double x, double y, double z, BlockEntityRenderDispatcher dispatcher) {
         List<BlockEntity> empty = Collections.emptyList();
         for (BlockEntity entity : empty) {
-            renderBlockEntity(matrices, bufferBuilders, blockBreakingProgressions,
-                    tickDelta, immediate, x, y, z, dispatcher, entity);
+            renderBlockEntity(matrices, bufferBuilders, blockBreakingProgressions, tickDelta, immediate, x, y, z, dispatcher, entity);
         }
     }
 
     @SuppressWarnings("unused")
-    public boolean isEntityVisible(Entity entity) {
-        return true;
-    }
+    public boolean isEntityVisible(Entity entity) { return true; }
 }

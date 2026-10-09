@@ -6,7 +6,7 @@ plugins {
     id 'org.spongepowered.mixin' version '0.7.+'
 }
 
-version = '0.9.2'
+version = '0.10.3'
 group = 'com.example.ribbon'
 archivesBaseName = 'ribbon'
 
@@ -27,7 +27,7 @@ minecraft {
             property 'forge.logging.console.level', 'debug'
             arg "-mixin.config=embeddium.mixins.json"
             arg "-mixin.config=sodium-extra.mixins.json"
-            arg "-mixin.config=ribbon.mixins.json" // <--- 新增
+            arg "-mixin.config=ribbon.mixins.json"
             mods { ribbon { source sourceSets.main } }
         }
         server {
@@ -36,7 +36,7 @@ minecraft {
             property 'forge.logging.console.level', 'debug'
             arg "-mixin.config=embeddium.mixins.json"
             arg "-mixin.config=sodium-extra.mixins.json"
-            arg "-mixin.config=ribbon.mixins.json" // <--- 新增
+            arg "-mixin.config=ribbon.mixins.json"
             mods { ribbon { source sourceSets.main } }
         }
     }
@@ -50,7 +50,17 @@ repositories {
     mavenCentral()
     maven { name = 'MinecraftForge'; url = 'https://maven.minecraftforge.net/' }
     maven { name = 'SpongePowered'; url = 'https://repo.spongepowered.org/repository/maven-public/' }
-    maven { name = 'Modrinth'; url = 'https://api.modrinth.com/maven'; content { includeGroup 'maven.modrinth' } }
+
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "Modrinth"
+                url = "https://api.modrinth.com/maven"
+            }
+        }
+        filter { includeGroup "maven.modrinth" }
+    }
+
     flatDir { dirs 'libs' }
 }
 
@@ -60,42 +70,24 @@ dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
 
-    // MixinExtras
     implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:0.4.1"))
     implementation(jarJar("io.github.llamalad7:mixinextras-forge:0.4.1")) {
         jarJar.ranged(it, "[0.4.1,)")
     }
-
-    // ==========================================================
-    // Hassium —— 已注释（排查游戏卡死/HUD NPE 用）
-    // 等游戏稳定后再取消注释测试
-    // ==========================================================
-    // jarJar(files("libs/hassium-forge-2.0.3-1.20.1.jar"))
 }
 
 mixin {
     add sourceSets.main, "embeddium.refmap.json"
     config "embeddium.mixins.json"
     config "sodium-extra.mixins.json"
-    config "ribbon.mixins.json" // <--- 新增
+    config "ribbon.mixins.json"
 }
 
-jar {
-    manifest {
-        attributes([
-                "Specification-Title"     : "ribbon",
-                "Specification-Vendor"    : "example",
-                "Specification-Version"   : "1",
-                "Implementation-Title"    : project.name,
-                "Implementation-Version"  : project.jar.archiveVersion,
-                "Implementation-Vendor"   : "example",
-                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
-                "MixinConfigs"            : "embeddium.mixins.json,sodium-extra.mixins.json,ribbon.mixins.json" // <--- 新增
-        ])
+tasks.named('jar', Jar).configure {
+    // ★ 关键修复：把 Mixin AP 生成在 tmp 里的 refmap 手动打进 jar
+    from("${buildDir}/tmp/compileJava") {
+        include "embeddium.refmap.json"
     }
-}
-
-tasks.named('jar').configure {
     archiveClassifier.set('dev')
 }
 
